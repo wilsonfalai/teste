@@ -56,7 +56,18 @@ class Customer
      */
     private $phone;
 
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="created_at", type="string",  nullable=false)
+     */
     private $created_at;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="updated_at", type="string",  nullable=false)
+     */
     private $updated_at;
 
     /**
@@ -156,6 +167,45 @@ class Customer
     {
         $this->age = $age;
 
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getCreated_at()
+    {
+        return $this->created_at;
+    }
+
+    /**
+     * @param string $created_at
+     *
+     * @return Customer
+     */
+    public function setCreated_at($created_at)
+    {
+        $this->created_at = $created_at;
+
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getUpdated_at()
+    {
+        return $this->updated_at;
+    }
+
+    /**
+     * @param string $updated_at
+     *
+     * @return Customer
+     */
+    public function setUpdated_at($updated_at)
+    {
+        $this->updated_at = $updated_at;
         return $this;
     }
 

@@ -78,12 +78,27 @@ $app->register(new DoctrineOrmServiceProvider(), [
  */
 
 /**
- * Autenticação
+ * Autenticação e Controles
  * Antes de executar qualquer requisição, verificar autenticação
- * OAuth 2 => via HTTP Bearer Tokens.  OAuth2 protocolo
  */
 $app->before(function($request, $app) {
 
+
+    if ($request->headers->get('Content-Type') !== 'application/json') {
+        //$app->abort(400,'Bad Request - Aceita apenas Json');
+    }
+
+    #if (0 === strpos($request->headers->get('Content-Type'), 'application/json')) {
+    #    $app->abort(400,'Bad Request - Aceita apenas Json');
+    #}
+
+    //Se passar a aceitar JSON, converter converte para JSON
+    #if (0 === strpos($request->headers->get('Content-Type'), 'application/json')) {
+    #    $data = json_decode($request->getContent(), true);
+    #    $request->request->replace(is_array($data) ? $data : array());
+    #}
+
+    //Autenticação
     TodoAuth::authenticate($request, $app);
     //return 'oi';
 });
@@ -158,10 +173,27 @@ $app->get('/customers', function (Application $app) {
  */
 $app->post('/customer', function(Request $request) use ($app) {
 
-    return $app->json($request->request->all(), 200);
+    //return $app->json($request->request->all(), 200);
     //return $app->json($request->get('id'), 200);
-    //Validação
-    //... 400 =>  	Bad Request
+
+    //Validações
+    $validacao = [];
+
+    if(!$request->get('gender')){
+        $validacao[] = ["Parâmetro Gender Obrigatório"];
+    }
+    if(strlen($request->get('gender')) > 1){
+        //die('asd');
+        $validacao[] = ["Parâmetro Gender não pode ultrapassar 1 caracteres"];
+    }
+
+
+    if($validacao){
+        $payload = ['result' => $validacao];
+        $code = 422;
+        return $app->json($payload, $code);
+    }
+    //Implementar outras validações aqui
 
     //Atribuição dos valores post ao objeto $customer;
     $customer = new Customer();
@@ -169,6 +201,8 @@ $app->post('/customer', function(Request $request) use ($app) {
     $customer->setAge($request->get('age'));
     $customer->setGender($request->get('gender'));
     $customer->setPhone($request->get('phone'));
+    $customer->setCreated_at(date("Y-m-d H:i:s"));
+    $customer->setUpdated_at(date("Y-m-d H:i:s"));
 
     //Doctrine
     $entityManager = $app['orm.em'];
@@ -187,6 +221,8 @@ $app->post('/customer', function(Request $request) use ($app) {
             'age'    => $customer->getAge(),
             'gender' => $customer->getGender(),
             'phone'  => $customer->getPhone(),
+            'created_at'  => $customer->getCreated_at(),
+            'updated_at'  => $customer->getUpdated_at()
         ];
         $payload = ['result' => $result];
         $code = 201;
@@ -226,12 +262,12 @@ $app->delete('/customer/{customer_id}', function($customer_id) use ($app) {
 /**
  * Atualiza um Customer
  */
-$app->put('/customer/{customer_id}', function($customer_id) use ($app) {
+$app->put('/customer/{customer_id}', function($customer_id,Request $request) use ($app) {
 
     //return $app->json($request->request->all(), 200);
-
-    $data = json_decode($app['request']->getContent(), true);
-    return $app->json($data, 200);
+    //die($request->headers->get('Content-Type'));
+    $_message = $request->get('name');
+    return $app->json($_message, 200);
 
     $entityManager = $app['orm.em'];
     $customerRepository = $entityManager->getRepository('App\Entity\Customer');
