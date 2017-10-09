@@ -4,6 +4,8 @@
  * User: root
  * Date: 09/10/17
  * Time: 08:16
+ *
+ * Autenticação: Headers: Authorization => Bearer d0763edaa9d9bd2a9516280e9044d885
  */
 
 
@@ -15,7 +17,10 @@ use Dflydev\Provider\DoctrineOrm\DoctrineOrmServiceProvider;
 use \Symfony\Component\HttpFoundation\Request;
 use \Symfony\Component\HttpFoundation\Response;
 
+use App\Middleware\Authentication as TodoAuth;
+
 use \App\Entity\Customer;
+
 
 $baseDir = __DIR__ . '/../';
 
@@ -25,6 +30,7 @@ $app = new Application();
 
 //Centralizador de erros: Ex: Something goes terribly wrong: No route found for "POST /insertpost": Method Not Allowed (Allow: GET)
 $app->error(function (Exception $e) use ($app) {
+
     return new \Symfony\Component\HttpFoundation\Response("Something goes terribly wrong: " . $e->getMessage());
 });
 
@@ -70,6 +76,18 @@ $app->register(new DoctrineOrmServiceProvider(), [
  * http://docs.doctrine-project.org/projects/doctrine-orm/en/latest/tutorials/getting-started.html => bom para entendimento geral
  * http://docs.doctrine-project.org/projects/doctrine-orm/en/latest/reference/query-builder.html
  */
+
+/**
+ * Autenticação
+ * Antes de executar qualquer requisição, verificar autenticação
+ * OAuth 2 => via HTTP Bearer Tokens.  OAuth2 protocolo
+ */
+$app->before(function($request, $app) {
+
+    TodoAuth::authenticate($request, $app);
+    //return 'oi';
+});
+
 
 /**
  * Retorna um customer pelo id
@@ -171,7 +189,7 @@ $app->post('/customer', function(Request $request) use ($app) {
             'phone'  => $customer->getPhone(),
         ];
         $payload = ['result' => $result];
-        $code = 200;
+        $code = 201;
     }
 
     return $app->json($payload, $code);
@@ -201,7 +219,7 @@ $app->delete('/customer/{customer_id}', function($customer_id) use ($app) {
 
 
     $payload = ['result' => "Customer {$customer_id} deletado com sucesso!"];
-    return $app->json($payload, 200);
+    return $app->json($payload, 204);
 
 });
 
