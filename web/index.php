@@ -16,6 +16,7 @@ use Dflydev\Provider\DoctrineOrm\DoctrineOrmServiceProvider;
 
 use \Symfony\Component\HttpFoundation\Request;
 use \Symfony\Component\HttpFoundation\Response;
+use \Symfony\Component\HttpFoundation\ParameterBag;
 
 use App\Middleware\Authentication as TodoAuth;
 
@@ -70,6 +71,10 @@ $app->register(new DoctrineOrmServiceProvider(), [
     ]
 ]);
 
+//CORS
+$app->register(new JDesrosiers\Silex\Provider\CorsServiceProvider(), [
+//"cors.allowOrigin" => "http://petstore.swagger.wordnik.com",
+]);
 
 /**
  * Doctrine Informações Úteis
@@ -83,16 +88,14 @@ $app->register(new DoctrineOrmServiceProvider(), [
  */
 $app->before(function($request, $app) {
 
-
-    if ($request->headers->get('Content-Type') !== 'application/json') {
-        //$app->abort(400,'Bad Request - Aceita apenas Json');
+    if ($request->getMethod() == 'OPTIONS') {
+        return new Response('', 204);
+    }
+    //die($request->headers->get('Content-Type'));
+    if($request->headers->get('Content-Type') != 'application/json'){
+        $app->abort(400,$request->headers->get('Content-Type'));
     }
 
-    #if (0 === strpos($request->headers->get('Content-Type'), 'application/json')) {
-    #    $app->abort(400,'Bad Request - Aceita apenas Json');
-    #}
-
-    //Se passar a aceitar JSON, converter converte para JSON
     #if (0 === strpos($request->headers->get('Content-Type'), 'application/json')) {
     #    $data = json_decode($request->getContent(), true);
     #    $request->request->replace(is_array($data) ? $data : array());
@@ -100,8 +103,24 @@ $app->before(function($request, $app) {
 
     //Autenticação
     TodoAuth::authenticate($request, $app);
-    //return 'oi';
 });
+
+/**
+ * Após da requisição
+ */
+$app->after(function (Request $request, Response $response, Application $app) {
+
+    //Cors
+    //Retorno os Header necessários para que o cliente(Browser), possa conseguir consultar a api
+    $response->headers->set('Access-Control-Allow-Origin', '*');
+    $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
+    $response->headers->set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+    $response->headers->set('Content-Type', 'application/json');//Header de resposta sempre text/json
+    //die(json_decode($request->getContent())->name);
+    //$app->abort(202,$request->getContent());
+
+});
+
 
 
 /**
@@ -132,7 +151,7 @@ $app->get('/customer/{customer_id}', function($customer_id) use ($app) {
 
     return $app->json($payload, $code);
 
-});
+})->assert('customer_id', '\d+');//Parametro deve ser um NÚMERO
 
 /**
  * Retorna todos os Customers
@@ -166,19 +185,29 @@ $app->get('/customers', function (Application $app) {
 
 });
 
+$app->post('/customer', function (Request $request) use ($app) {
+    
+    //$request->request->replace(['name' => 'wilson', 'age' => '15']);
+
+    $post = array( 'name' => $request->request->get('name'), 'age' => $request->request->get('age'), );
+
+    //$post['id'] = createPost($post);
+
+    return $app->json($post, 201);
+});
+
 /**
  * Salvar novo Customer
  * Ex: POST http://silex-api.br/customer
  * EU Poderia implementar a lógica: Se customer existir, atualizar, se não, grava no banco um customer novo, mas isolei o atualziar no metodo put
  */
-$app->post('/customer', function(Request $request) use ($app) {
+$app->post('/customer2', function(Request $request) use ($app) {
 
-    //return $app->json($request->request->all(), 200);
-    //return $app->json($request->get('id'), 200);
 
+    //die($request->request->get('name'));
     //Validações
     $validacao = [];
-
+    //die($request->get('name'));
     if(!$request->get('gender')){
         $validacao[] = ["Parâmetro Gender Obrigatório"];
     }
@@ -259,12 +288,14 @@ $app->delete('/customer/{customer_id}', function($customer_id) use ($app) {
 
 });
 
+
 /**
  * Atualiza um Customer
  */
+
 $app->put('/customer/{customer_id}', function($customer_id,Request $request) use ($app) {
 
-    //return $app->json($request->request->all(), 200);
+    return $app->json($request->request->all(), 200);
     //die($request->headers->get('Content-Type'));
     $_message = $request->get('name');
     return $app->json($_message, 200);
@@ -300,7 +331,7 @@ $app->put('/customer/{customer_id}', function($customer_id,Request $request) use
 
 });
 
-
+$app["cors-enabled"]($app);
 
 
 
