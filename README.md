@@ -31,4 +31,10 @@ A API deverá atender às seguintes exigências:
 # Padrões de nomenclatura
 1. Código fonte, nome do banco de dados, tabelas e campos devem estar em inglês
 
+#Virtual Hosts Nginx
+O arquivo silexapi.conf contém uma configuração pronta para rodar a api usando o nginx + php 7 + ubuntu 16
+
+#Banco de dados
+Na pasta db, existem os arquivos .sql para criar as tabelas
+
 **Inclua no seu commit todos os arquivos necessários para que possamos testar o código.**

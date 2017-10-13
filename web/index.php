@@ -91,33 +91,30 @@ $app->before(function($request, $app) {
     if ($request->getMethod() == 'OPTIONS') {
         return new Response('', 204);
     }
-    //die($request->headers->get('Content-Type'));
+
+    //Aceita Apenas JSON
     if($request->headers->get('Content-Type') != 'application/json'){
         $app->abort(400,$request->headers->get('Content-Type'));
     }
 
-    #if (0 === strpos($request->headers->get('Content-Type'), 'application/json')) {
-    #    $data = json_decode($request->getContent(), true);
-    #    $request->request->replace(is_array($data) ? $data : array());
-    #}
+    //Prepara dados de request
+    if (0 === strpos($request->headers->get('Content-Type'), 'application/json')) {
+        $data = json_decode($request->getContent(), true);
+        $request->request->replace(is_array($data) ? $data : array());
+    }
 
     //Autenticação
     TodoAuth::authenticate($request, $app);
 });
 
-/**
- * Após da requisição
- */
-$app->after(function (Request $request, Response $response, Application $app) {
 
+$app->after(function (Request $request, Response $response, Application $app) {
     //Cors
     //Retorno os Header necessários para que o cliente(Browser), possa conseguir consultar a api
     $response->headers->set('Access-Control-Allow-Origin', '*');
     $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE');
     $response->headers->set('Access-Control-Allow-Headers', 'Authorization, Content-Type');
-    $response->headers->set('Content-Type', 'application/json');//Header de resposta sempre text/json
-    //die(json_decode($request->getContent())->name);
-    //$app->abort(202,$request->getContent());
+    $response->headers->set('Content-Type', 'application/json');//Header de resposta sempre application/json
 
 });
 
@@ -185,44 +182,27 @@ $app->get('/customers', function (Application $app) {
 
 });
 
-$app->post('/customer', function (Request $request) use ($app) {
-    
-    //$request->request->replace(['name' => 'wilson', 'age' => '15']);
-
-    $post = array( 'name' => $request->request->get('name'), 'age' => $request->request->get('age'), );
-
-    //$post['id'] = createPost($post);
-
-    return $app->json($post, 201);
-});
 
 /**
  * Salvar novo Customer
  * Ex: POST http://silex-api.br/customer
- * EU Poderia implementar a lógica: Se customer existir, atualizar, se não, grava no banco um customer novo, mas isolei o atualziar no metodo put
+ * raw {"name":"wilson","age":"11","gender":"m","phone":"(22)988515853"}
  */
-$app->post('/customer2', function(Request $request) use ($app) {
+$app->post('/customer', function(Request $request) use ($app) {
 
-
-    //die($request->request->get('name'));
-    //Validações
+    //Exemplo de Validação
     $validacao = [];
-    //die($request->get('name'));
     if(!$request->get('gender')){
         $validacao[] = ["Parâmetro Gender Obrigatório"];
     }
     if(strlen($request->get('gender')) > 1){
-        //die('asd');
         $validacao[] = ["Parâmetro Gender não pode ultrapassar 1 caracteres"];
     }
-
-
     if($validacao){
         $payload = ['result' => $validacao];
         $code = 422;
         return $app->json($payload, $code);
     }
-    //Implementar outras validações aqui
 
     //Atribuição dos valores post ao objeto $customer;
     $customer = new Customer();
@@ -267,8 +247,6 @@ $app->post('/customer2', function(Request $request) use ($app) {
  */
 $app->delete('/customer/{customer_id}', function($customer_id) use ($app) {
 
-    //return $app->json('delete', 200);
-
     $entityManager = $app['orm.em'];
     $customerRepository = $entityManager->getRepository('App\Entity\Customer');
     $customer = $customerRepository->find($customer_id);
@@ -278,11 +256,8 @@ $app->delete('/customer/{customer_id}', function($customer_id) use ($app) {
         $payload = ['error' => ["Customer {$customer_id} não encontrado"]];
         return $app->json($payload, 400);
     }
-
     $entityManager->remove($customer);
     $entityManager->flush();
-
-
     $payload = ['result' => "Customer {$customer_id} deletado com sucesso!"];
     return $app->json($payload, 204);
 
@@ -291,15 +266,13 @@ $app->delete('/customer/{customer_id}', function($customer_id) use ($app) {
 
 /**
  * Atualiza um Customer
+ * PUT http://silex-api.br/customer/51
+ * raw {"name":"wilson","age":"11","gender":"m","phone":"(22)988515853"}
  */
 
 $app->put('/customer/{customer_id}', function($customer_id,Request $request) use ($app) {
 
-    return $app->json($request->request->all(), 200);
-    //die($request->headers->get('Content-Type'));
-    $_message = $request->get('name');
-    return $app->json($_message, 200);
-
+    //return $app->json($request->request->all(), 200);
     $entityManager = $app['orm.em'];
     $customerRepository = $entityManager->getRepository('App\Entity\Customer');
     $customer = $customerRepository->find($customer_id);
@@ -310,7 +283,7 @@ $app->put('/customer/{customer_id}', function($customer_id,Request $request) use
         return $app->json($payload, 400);
     } else {
 
-        $customer->setName($request->attributes->get('name'));
+        $customer->setName($request->get('name'));
         $customer->setAge($request->get('age'));
         $customer->setGender($request->get('gender'));
         $customer->setPhone($request->get('phone'));
